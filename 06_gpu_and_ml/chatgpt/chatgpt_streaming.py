@@ -15,12 +15,13 @@
 # stub as a [`modal.Secret`](/docs/guide/secrets).
 
 from modal import Image, Secret, Stub, web_endpoint
+import os
 
 image = Image.debian_slim().pip_install("openai")
 stub = Stub(
     name="example-chatgpt-stream",
     image=image,
-    secrets=[Secret.from_name("openai-secret")],
+    secrets=[Secret.from_name("my-openai-secret")],
 )
 
 # This is all the code needed to stream answers back from ChatGPT.
@@ -43,6 +44,29 @@ def stream_chat(prompt: str):
         content = chunk["choices"][0].get("delta", {}).get("content")
         if content is not None:
             yield content
+
+
+
+# pinecone test
+@stub.function(
+    image=Image.debian_slim().pip_install("pinecone-client~=2.2.2", "langchain", "openai"),
+    secrets=[Secret.from_name("my-openai-secret"), Secret.from_name("my-pinecone-api")]
+)
+def pinecone_init():
+    import pinecone
+    from langchain.vectorstores import Pinecone
+    from langchain.embeddings.openai import OpenAIEmbeddings
+
+    print("access embedding")
+    embeddings = OpenAIEmbeddings(disallowed_special=(), openai_api_key=os.environ['OPENAI_API_KEY'])
+    print("pinecone start testing")
+    pinecone.init(
+    api_key= os.environ["pinecone-api"],
+    environment='asia-southeast1-gcp-free'   
+    )
+    index_name =  'tim-urban-test'
+    docsearch = Pinecone.from_existing_index(index_name, embeddings)
+    print("pinecone end testing")
 
 
 # ## Streaming web endpoint
@@ -92,6 +116,9 @@ default_prompt = (
 
 
 @stub.local_entrypoint()
-def main(prompt: str = default_prompt):
+def main(prompt: str = default_prompt):    
     for part in stream_chat.call(prompt=prompt):
         print(part, end="")
+    pinecone_init.call()
+
+
