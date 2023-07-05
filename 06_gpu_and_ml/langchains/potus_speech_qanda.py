@@ -19,7 +19,7 @@
 #
 # A `docsearch` global variable is also declared to facilitate caching a slow operation in the code below.
 from pathlib import Path
-
+import os
 from modal import Image, Secret, Stub, web_endpoint
 
 image = Image.debian_slim().pip_install(
@@ -36,9 +36,13 @@ image = Image.debian_slim().pip_install(
 stub = Stub(
     name="example-langchain-qanda",
     image=image,
-    secrets=[Secret.from_name("openai-secret")],
+    secrets=[Secret.from_name("my-openai-secret")],
 )
 docsearch = None  # embedding index that's relatively expensive to compute, so caching with global var.
+
+
+
+
 
 # ## Scraping the speech from whitehouse.gov
 #
