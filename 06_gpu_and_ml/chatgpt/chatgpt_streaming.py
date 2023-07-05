@@ -41,6 +41,7 @@ def stream_chat(prompt: str):
         messages=[{"role": "user", "content": prompt}],
         stream=True,
     ):
+        print("sample chunk", chunk)
         content = chunk["choices"][0].get("delta", {}).get("content")
         if content is not None:
             yield content
@@ -102,9 +103,7 @@ def web(prompt: str):
 # We've also already deployed this example and so you can try out our deployed web endpoint:
 #
 # ```bash
-# curl --get \
-#   --data-urlencode "prompt=Generate a list of 20 great names for sentient cheesecakes that teach SQL" \
-#   https://modal-labs--example-chatgpt-stream-web.modal.run
+# curl --get \--data-urlencode "prompt=Generate a list of 20 great names for sentient cheesecakes that teach SQL" \https://modal-labs--example-chatgpt-stream-web.modal.run
 # ```
 #
 # ## CLI interface
@@ -120,6 +119,5 @@ default_prompt = (
 def main(prompt: str = default_prompt):    
     for part in stream_chat.call(prompt=prompt):
         print(part, end="")
-    pinecone_init.call()
 
 

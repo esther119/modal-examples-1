@@ -23,7 +23,7 @@ stub = Stub(
 
 # # pinecone test
 @stub.function()
-def pinecone_docsearch(user_input):
+def pinecone_similarity_search(user_input):
     import pinecone
     from langchain.vectorstores import Pinecone
     from langchain.embeddings.openai import OpenAIEmbeddings
@@ -42,41 +42,31 @@ def pinecone_docsearch(user_input):
     # return docsearch
 
 
-@stub.function()
-def AI_response_messages(user_input: str, store: str) -> str:
+def generate_input_messages(user_input: str) -> str:
+    
     template ='''
     Use the following pieces of context from waitbutwhy to answer the question at the end. 
     If you don't know the answer, just clarify that you are not sure, but this might be how Tim Urban thinks.
     '''
     engineered_user_input = f'Write a blog about {user_input} within 300 words like waitbutwhy using "you" in a casual language'
-    from langchain.schema import (
-        AIMessage,
-        HumanMessage,
-        SystemMessage
-    )
-    from langchain.chat_models import ChatOpenAI
-    chat = ChatOpenAI(model_name='gpt-3.5-turbo-16k-0613', openai_api_key=os.environ['OPENAI_API_KEY'])   
-
     print("engineered_user_input", engineered_user_input)
-    messages = [
-        SystemMessage(content=template+store),
-        HumanMessage(content=engineered_user_input)
-    ]
-    response=chat(messages)
-    return response.content
+    return template, engineered_user_input
 
 @stub.function()
-def stream_chat(prompt: str):
+def stream_chat(template, store, engineered_user_input):
     import openai
-
+    messages = [{"role": "system", "content": template + store}, 
+            {"role": "user", "content":engineered_user_input}]
     for chunk in openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}],
+        messages=messages,
         stream=True,
     ):
         content = chunk["choices"][0].get("delta", {}).get("content")
         if content is not None:
             yield content
+
+
 
 
 # ## Streaming web endpoint
@@ -120,28 +110,21 @@ def stream_chat(prompt: str):
 #
 # Doing `modal run chatgpt_streaming.py --prompt="Generate a list of the world's most famous people"` also works, and uses the `local_entrypoint` defined below.
 default_user_input = "first principles"
-default_prompt = (
-    "Generate a list of 20 great names for sentient cheesecakes that teach SQL"
-)
-
 
 @stub.local_entrypoint()
-def main(prompt: str = default_prompt):    
-    
-    store = pinecone_docsearch.call(default_user_input)
-    print("finished store", store)
-    # store = similarity_search(default_user_input, docsearch)
-    # print("finished similarity_search")
-    response = AI_response_messages.call(default_user_input, store)
-    print(response)
-
-    # for part in stream_chat.call(prompt=prompt):
-    #     print(part, end="")
+def main(prompt: str = default_user_input):    
+    store = pinecone_similarity_search.call(default_user_input)
+    template, engineered_user_input = generate_input_messages(default_user_input)
+    for part in stream_chat.call(template, store, engineered_user_input):
+        print(part, end="")
 
 @stub.function()
 @web_endpoint(method="GET")
 def web(user_input: str):
-    store = pinecone_docsearch(user_input)
+    from fastapi.responses import StreamingResponse
+
+    store = pinecone_similarity_search(user_input)
     print("finished store", store)
-    response = AI_response_messages.call(user_input, store)
-    return response
+    template, engineered_user_input = generate_input_messages(user_input)
+
+    return StreamingResponse(stream_chat(template, store, engineered_user_input), media_type="text/html")
