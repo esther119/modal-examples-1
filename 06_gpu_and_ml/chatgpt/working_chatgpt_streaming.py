@@ -1,6 +1,4 @@
-#
 # # Using the ChatGPT streaming API
-#
 # This example shows how to stream from the ChatGPT API as the model is generating a completion, instead of
 # waiting for the entire completion to finish. This provides a much better user experience, and is what you
 # get when playing with ChatGPT on [chat.openai.com](https://chat.openai.com/).
@@ -39,7 +37,6 @@ def pinecone_similarity_search(user_input):
     print("pinecone end testing")
     docs = docsearch.similarity_search(user_input)
     return docs[0].page_content
-    # return docsearch
 
 
 def generate_input_messages(user_input: str) -> str:
@@ -62,10 +59,10 @@ def stream_chat(template, store, engineered_user_input):
         messages=messages,
         stream=True,
     ):
+        # print("chunk", chunk)
         content = chunk["choices"][0].get("delta", {}).get("content")
         if content is not None:
             yield content
-
 
 
 
@@ -127,4 +124,4 @@ def web(user_input: str):
     print("finished store", store)
     template, engineered_user_input = generate_input_messages(user_input)
 
-    return StreamingResponse(stream_chat(template, store, engineered_user_input), media_type="text/html")
+    return StreamingResponse(stream_chat(template, store, engineered_user_input), media_type="text/event-stream")

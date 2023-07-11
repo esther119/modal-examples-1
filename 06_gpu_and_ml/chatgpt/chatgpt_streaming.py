@@ -103,7 +103,7 @@ def web(prompt: str):
 # We've also already deployed this example and so you can try out our deployed web endpoint:
 #
 # ```bash
-# curl --get \--data-urlencode "prompt=Generate a list of 20 great names for sentient cheesecakes that teach SQL" \https://modal-labs--example-chatgpt-stream-web.modal.run
+#curl --get \--data-urlencode "prompt=Generate a list of 20 great names for sentient cheesecakes that teach SQL" \https://modal-labs--example-chatgpt-stream-web.modal.run
 # ```
 #
 # ## CLI interface
